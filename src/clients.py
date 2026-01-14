@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Iterator
+from urllib.parse import urljoin
 
 import requests
 
@@ -30,9 +31,6 @@ class SIGAClient:
         self._config = config
         self._session = session or requests.Session()
 
-    def _build_url(self, base_url: str, endpoint: str) -> str:
-        return f"{base_url.rstrip('/')}/{endpoint.lstrip('/')}"
-
     def _headers(self) -> dict[str, str]:
         token = self._config.siga_auth_token
         prefix = self._config.siga_auth_prefix
@@ -52,7 +50,7 @@ class SIGAClient:
                 "page": page,
                 "pageSize": self._config.siga_page_size,
             }
-            url = self._build_url(self._config.siga_base_url, self._config.siga_students_endpoint)
+            url = urljoin(self._config.siga_base_url, self._config.siga_students_endpoint)
             response = self._session.get(url, headers=self._headers(), params=params, timeout=30)
             response.raise_for_status()
             payload = response.json()
@@ -88,7 +86,7 @@ class SIGAClient:
             "dataVencimentoInicio": start.isoformat(),
             "dataVencimentoFim": end.isoformat(),
         }
-        url = self._build_url(self._config.siga_boletos_base_url, endpoint)
+        url = urljoin(self._config.siga_boletos_base_url, endpoint)
         response = self._session.get(url, headers=self._headers(), params=params, timeout=30)
         response.raise_for_status()
         payload = response.json()
@@ -131,7 +129,7 @@ class MegaZapClient:
         }
 
     def send_qrcode(self, payload: dict[str, Any]) -> dict[str, Any]:
-        url = f"{self._config.megazap_base_url.rstrip('/')}/{self._config.megazap_qrcode_endpoint.lstrip('/')}"
+        url = urljoin(self._config.megazap_base_url, self._config.megazap_qrcode_endpoint)
         response = self._session.post(url, headers=self._headers(), json=payload, timeout=30)
         response.raise_for_status()
         return response.json()
