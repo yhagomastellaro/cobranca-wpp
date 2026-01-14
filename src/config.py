@@ -15,8 +15,11 @@ class IntegrationConfig:
     siga_auth_prefix: str
     siga_students_endpoint: str
     siga_boletos_endpoint: str
+    siga_boletos_base_url: str
+    siga_boletos_student_param: str
     siga_active_year: int
     siga_page_size: int
+    siga_extra_headers: dict[str, str]
     megazap_base_url: str
     megazap_auth_header: str
     megazap_auth_token: str
@@ -46,6 +49,19 @@ def _load_payload_template() -> dict[str, Any]:
         ) from exc
 
 
+def _load_siga_extra_headers() -> dict[str, str]:
+    raw = os.getenv("SIGA_EXTRA_HEADERS_JSON", "{}")
+    if not raw.strip():
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError("SIGA_EXTRA_HEADERS_JSON must be valid JSON") from exc
+    if not isinstance(data, dict):
+        raise ValueError("SIGA_EXTRA_HEADERS_JSON must be a JSON object")
+    return {str(key): str(value) for key, value in data.items()}
+
+
 def load_config(require_megazap_token: bool = True) -> IntegrationConfig:
     siga_base_url = os.getenv("SIGA_BASE_URL", "https://siga04.activesoft.com.br/api")
     megazap_base_url = os.getenv("MEGAZAP_BASE_URL", "https://api.megazap.com.br")
@@ -66,8 +82,15 @@ def load_config(require_megazap_token: bool = True) -> IntegrationConfig:
         siga_boletos_endpoint=os.getenv(
             "SIGA_BOLETOS_ENDPOINT", "/alunos/{aluno_id}/boletos"
         ),
+        siga_boletos_base_url=os.getenv(
+            "SIGA_BOLETOS_BASE_URL", siga_base_url
+        ).rstrip("/"),
+        siga_boletos_student_param=os.getenv(
+            "SIGA_BOLETOS_STUDENT_PARAM", "aluno_id"
+        ),
         siga_active_year=int(os.getenv("SIGA_ACTIVE_YEAR", "2026")),
         siga_page_size=int(os.getenv("SIGA_PAGE_SIZE", "100")),
+        siga_extra_headers=_load_siga_extra_headers(),
         megazap_base_url=megazap_base_url.rstrip("/"),
         megazap_auth_header=os.getenv("MEGAZAP_AUTH_HEADER", "Authorization"),
         megazap_auth_token=megazap_auth_token,

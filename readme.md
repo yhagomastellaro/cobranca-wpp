@@ -34,8 +34,12 @@ export SIGA_AUTH_HEADER="Authorization"
 export SIGA_AUTH_PREFIX="Bearer"
 export SIGA_STUDENTS_ENDPOINT="/alunos"
 export SIGA_BOLETOS_ENDPOINT="/alunos/{aluno_id}/boletos"
+export SIGA_BOLETOS_BASE_URL="https://siga04.activesoft.com.br/api"
+export SIGA_BOLETOS_STUDENT_PARAM="aluno_id"
 export SIGA_ACTIVE_YEAR="2026"
 export SIGA_PAGE_SIZE="100"
+# Headers extras exigidos pelo SIGA (ex: X-CSRFToken)
+export SIGA_EXTRA_HEADERS_JSON='{"X-CSRFToken":"seu-csrf-token"}'
 
 export MEGAZAP_BASE_URL="https://api.megazap.com.br"
 export MEGAZAP_AUTH_HEADER="Authorization"

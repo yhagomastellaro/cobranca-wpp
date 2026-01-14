@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Iterator
 from urllib.parse import urljoin
 
@@ -34,7 +34,12 @@ class SIGAClient:
     def _headers(self) -> dict[str, str]:
         token = self._config.siga_auth_token
         prefix = self._config.siga_auth_prefix
-        return {self._config.siga_auth_header: f"{prefix} {token}".strip()}
+        headers = {
+            "Accept": "application/json",
+            self._config.siga_auth_header: f"{prefix} {token}".strip(),
+        }
+        headers.update(self._config.siga_extra_headers)
+        return headers
 
     def iter_active_students(self, year: int) -> Iterator[Student]:
         page = 1
@@ -63,26 +68,48 @@ class SIGAClient:
                 break
             page += 1
 
+    def _parse_date(self, value: str | None) -> date | None:
+        if not value:
+            return None
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            try:
+                return datetime.fromisoformat(value).date()
+            except ValueError:
+                return None
+
     def get_boletos_due(self, aluno_id: str, start: date, end: date) -> list[Boleto]:
         endpoint = self._config.siga_boletos_endpoint.format(aluno_id=aluno_id)
         params = {
+            self._config.siga_boletos_student_param: aluno_id,
             "dataVencimentoInicio": start.isoformat(),
             "dataVencimentoFim": end.isoformat(),
         }
-        url = urljoin(self._config.siga_base_url, endpoint)
+        url = urljoin(self._config.siga_boletos_base_url, endpoint)
         response = self._session.get(url, headers=self._headers(), params=params, timeout=30)
         response.raise_for_status()
         payload = response.json()
-        items = payload.get("items") or payload.get("data") or []
+        items = payload.get("items") or payload.get("data") or payload.get("resultados") or []
         boletos: list[Boleto] = []
         for item in items:
+            due_date = self._parse_date(item.get("dataVencimento") or item.get("dt_vencimento"))
+            if not due_date:
+                continue
+            if due_date < start or due_date > end:
+                continue
             boletos.append(
                 Boleto(
                     id=str(item.get("id") or item.get("codigo") or ""),
-                    due_date=date.fromisoformat(item.get("dataVencimento")),
-                    amount=float(item.get("valor")),
-                    barcode=item.get("codigoBarras") or "",
-                    line_digit=item.get("linhaDigitavel") or "",
+                    due_date=due_date,
+                    amount=float(
+                        item.get("valor")
+                        or item.get("valor_recebido_total")
+                        or item.get("valor_boleto")
+                        or 0
+                    ),
+                    barcode=item.get("codigoBarras") or item.get("codigo_barras") or "",
+                    line_digit=item.get("linhaDigitavel") or item.get("linha_digitavel") or "",
                 )
             )
         return boletos
