@@ -84,40 +84,6 @@ def run_integration(config: IntegrationConfig, dry_run: bool = False) -> None:
             )
 
 
-def _redact_value(value: str, visible: int = 4) -> str:
-    if not value:
-        return "<vazio>"
-    if len(value) <= visible:
-        return "***"
-    return f"{value[:2]}...{value[-visible:]}"
-
-
-def _redact_authorization(value: str) -> str:
-    if not value:
-        return "<vazio>"
-    parts = value.split(" ", 1)
-    if len(parts) == 2:
-        prefix, token = parts
-        return f"{prefix} {_redact_value(token)}"
-    return _redact_value(value)
-
-
-def debug_siga(config: IntegrationConfig) -> None:
-    siga_client = SIGAClient(config)
-    url, headers, params = siga_client.build_students_request(config.siga_active_year, page=1)
-
-    redacted_headers = {}
-    for key, value in headers.items():
-        if key.lower() == config.siga_auth_header.lower():
-            redacted_headers[key] = _redact_authorization(value)
-        else:
-            redacted_headers[key] = "<redacted>"
-
-    logger.info("SIGA debug URL: %s", url)
-    logger.info("SIGA debug params: %s", params)
-    logger.info("SIGA debug headers: %s", redacted_headers)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Integração SIGA -> MegaZap para boletos a vencer"
@@ -127,19 +93,11 @@ def main() -> None:
         action="store_true",
         help="Não envia para o MegaZap, apenas loga o payload.",
     )
-    parser.add_argument(
-        "--debug-siga",
-        action="store_true",
-        help="Exibe URL, parâmetros e headers (com token ofuscado) usados no SIGA.",
-    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
-    config = load_config(require_megazap_token=not (args.dry_run or args.debug_siga))
-    if args.debug_siga:
-        debug_siga(config)
-        return
+    config = load_config(require_megazap_token=not args.dry_run)
     run_integration(config, dry_run=args.dry_run)
 
 
