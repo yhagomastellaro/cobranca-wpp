@@ -60,13 +60,18 @@ class SIGAClient:
             response = self._session.get(url, headers=headers, params=params, timeout=30)
             response.raise_for_status()
             payload = response.json()
-            items = payload.get("items") or payload.get("data") or []
+            if isinstance(payload, list):
+                items = payload
+            else:
+                items = payload.get("items") or payload.get("data") or []
             for item in items:
                 yield Student(
                     id=str(item.get("id") or item.get("codigo") or ""),
                     name=item.get("nome") or item.get("name") or "",
                     phone=item.get("telefone") or item.get("celular") or item.get("phone"),
                 )
+            if isinstance(payload, list):
+                break
             total_pages = payload.get("totalPages") or payload.get("pages")
             if total_pages and page >= int(total_pages):
                 break
