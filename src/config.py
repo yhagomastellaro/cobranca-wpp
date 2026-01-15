@@ -62,40 +62,50 @@ def _load_siga_extra_headers() -> dict[str, str]:
     return {str(key): str(value) for key, value in data.items()}
 
 
-def load_config(require_megazap_token: bool = True) -> IntegrationConfig:
-    siga_base_url = os.getenv("SIGA_BASE_URL", "https://siga04.activesoft.com.br/api")
-    megazap_base_url = os.getenv("MEGAZAP_BASE_URL", "https://api.megazap.com.br")
+def _load_env_default(name: str, default: str) -> str:
+    value = os.getenv(name, "").strip()
+    return value or default
 
-    siga_auth_token = os.getenv("SIGA_AUTH_TOKEN", "")
-    megazap_auth_token = os.getenv("MEGAZAP_AUTH_TOKEN", "")
-    if not siga_auth_token:
-        raise ValueError("SIGA_AUTH_TOKEN is required")
+
+def _load_env_required(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise ValueError(f"{name} is required")
+    return value
+
+
+def load_config(require_megazap_token: bool = True) -> IntegrationConfig:
+    siga_base_url = _load_env_default("SIGA_BASE_URL", "https://siga.activesoft.com.br/api/v0")
+    megazap_base_url = _load_env_default("MEGAZAP_BASE_URL", "https://api.megazap.com.br")
+
+    siga_auth_token = _load_env_required("SIGA_AUTH_TOKEN")
+    megazap_auth_token = os.getenv("MEGAZAP_AUTH_TOKEN", "").strip()
     if require_megazap_token and not megazap_auth_token:
         raise ValueError("MEGAZAP_AUTH_TOKEN is required")
 
     return IntegrationConfig(
         siga_base_url=siga_base_url.rstrip("/"),
-        siga_auth_header=os.getenv("SIGA_AUTH_HEADER", "Authorization"),
+        siga_auth_header=_load_env_default("SIGA_AUTH_HEADER", "Authorization"),
         siga_auth_token=siga_auth_token,
-        siga_auth_prefix=os.getenv("SIGA_AUTH_PREFIX", "Bearer"),
-        siga_students_endpoint=os.getenv("SIGA_STUDENTS_ENDPOINT", "/alunos"),
-        siga_boletos_endpoint=os.getenv(
+        siga_auth_prefix=_load_env_default("SIGA_AUTH_PREFIX", "Bearer"),
+        siga_students_endpoint=_load_env_default("SIGA_STUDENTS_ENDPOINT", "/alunos"),
+        siga_boletos_endpoint=_load_env_default(
             "SIGA_BOLETOS_ENDPOINT", "/alunos/{aluno_id}/boletos"
         ),
-        siga_boletos_base_url=os.getenv(
+        siga_boletos_base_url=_load_env_default(
             "SIGA_BOLETOS_BASE_URL", siga_base_url
         ).rstrip("/"),
-        siga_boletos_student_param=os.getenv(
+        siga_boletos_student_param=_load_env_default(
             "SIGA_BOLETOS_STUDENT_PARAM", "aluno_id"
         ),
         siga_active_year=int(os.getenv("SIGA_ACTIVE_YEAR", "2026")),
         siga_page_size=int(os.getenv("SIGA_PAGE_SIZE", "100")),
         siga_extra_headers=_load_siga_extra_headers(),
         megazap_base_url=megazap_base_url.rstrip("/"),
-        megazap_auth_header=os.getenv("MEGAZAP_AUTH_HEADER", "Authorization"),
+        megazap_auth_header=_load_env_default("MEGAZAP_AUTH_HEADER", "Authorization"),
         megazap_auth_token=megazap_auth_token,
-        megazap_auth_prefix=os.getenv("MEGAZAP_AUTH_PREFIX", "Bearer"),
-        megazap_qrcode_endpoint=os.getenv(
+        megazap_auth_prefix=_load_env_default("MEGAZAP_AUTH_PREFIX", "Bearer"),
+        megazap_qrcode_endpoint=_load_env_default(
             "MEGAZAP_QRCODE_ENDPOINT", "/whatsapp/qrcode"
         ),
         megazap_default_message=os.getenv(

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any, Iterator
-from urllib.parse import urljoin
+from typing import Any, Iterator, Mapping
 
 import requests
 
@@ -31,6 +30,9 @@ class SIGAClient:
         self._config = config
         self._session = session or requests.Session()
 
+    def _build_url(self, base_url: str, endpoint: str) -> str:
+        return f"{base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+
     def _headers(self) -> dict[str, str]:
         token = self._config.siga_auth_token
         prefix = self._config.siga_auth_prefix
@@ -41,17 +43,21 @@ class SIGAClient:
         headers.update(self._config.siga_extra_headers)
         return headers
 
+    def build_students_request(self, year: int, page: int = 1) -> tuple[str, dict[str, str], Mapping[str, Any]]:
+        params = {
+            "ativo": True,
+            "ano": year,
+            "page": page,
+            "pageSize": self._config.siga_page_size,
+        }
+        url = self._build_url(self._config.siga_base_url, self._config.siga_students_endpoint)
+        return url, self._headers(), params
+
     def iter_active_students(self, year: int) -> Iterator[Student]:
         page = 1
         while True:
-            params = {
-                "ativo": True,
-                "ano": year,
-                "page": page,
-                "pageSize": self._config.siga_page_size,
-            }
-            url = urljoin(self._config.siga_base_url, self._config.siga_students_endpoint)
-            response = self._session.get(url, headers=self._headers(), params=params, timeout=30)
+            url, headers, params = self.build_students_request(year, page)
+            response = self._session.get(url, headers=headers, params=params, timeout=30)
             response.raise_for_status()
             payload = response.json()
             items = payload.get("items") or payload.get("data") or []
@@ -86,7 +92,7 @@ class SIGAClient:
             "dataVencimentoInicio": start.isoformat(),
             "dataVencimentoFim": end.isoformat(),
         }
-        url = urljoin(self._config.siga_boletos_base_url, endpoint)
+        url = self._build_url(self._config.siga_boletos_base_url, endpoint)
         response = self._session.get(url, headers=self._headers(), params=params, timeout=30)
         response.raise_for_status()
         payload = response.json()
@@ -129,7 +135,7 @@ class MegaZapClient:
         }
 
     def send_qrcode(self, payload: dict[str, Any]) -> dict[str, Any]:
-        url = urljoin(self._config.megazap_base_url, self._config.megazap_qrcode_endpoint)
+        url = f"{self._config.megazap_base_url.rstrip('/')}/{self._config.megazap_qrcode_endpoint.lstrip('/')}"
         response = self._session.post(url, headers=self._headers(), json=payload, timeout=30)
         response.raise_for_status()
         return response.json()

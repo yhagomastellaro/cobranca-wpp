@@ -29,12 +29,12 @@ export MEGAZAP_AUTH_TOKEN="seu-token-megazap"
 Variáveis opcionais (ajuste conforme a documentação real):
 
 ```bash
-export SIGA_BASE_URL="https://siga04.activesoft.com.br/api"
+export SIGA_BASE_URL="https://siga.activesoft.com.br/api/v0"
 export SIGA_AUTH_HEADER="Authorization"
 export SIGA_AUTH_PREFIX="Bearer"
 export SIGA_STUDENTS_ENDPOINT="/alunos"
 export SIGA_BOLETOS_ENDPOINT="/alunos/{aluno_id}/boletos"
-export SIGA_BOLETOS_BASE_URL="https://siga04.activesoft.com.br/api"
+export SIGA_BOLETOS_BASE_URL="https://siga.activesoft.com.br/api/v0"
 export SIGA_BOLETOS_STUDENT_PARAM="aluno_id"
 export SIGA_ACTIVE_YEAR="2026"
 export SIGA_PAGE_SIZE="100"
@@ -58,6 +58,22 @@ python -m src.integration --dry-run
 ```
 
 Remova `--dry-run` para efetuar os envios.
+
+## Debug do SIGA
+
+Para validar se o script está montando a URL, parâmetros e headers corretos (sem expor o token inteiro), execute:
+
+```bash
+python -m src.integration --debug-siga
+```
+
+Você também pode usar o atalho:
+
+```bash
+python -m src.integration --debug
+```
+
+O comando imprime a URL, os parâmetros e os headers com o token ofuscado para facilitar a verificação.
 
 ## Ajuste de payload
 
