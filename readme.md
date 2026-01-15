@@ -59,22 +59,6 @@ python -m src.integration --dry-run
 
 Remova `--dry-run` para efetuar os envios.
 
-## Debug do SIGA
-
-Para validar se o script está montando a URL, parâmetros e headers corretos (sem expor o token inteiro), execute:
-
-```bash
-python -m src.integration --debug-siga
-```
-
-Você também pode usar o atalho:
-
-```bash
-python -m src.integration --debug
-```
-
-O comando imprime a URL, os parâmetros e os headers com o token ofuscado para facilitar a verificação.
-
 ## Ajuste de payload
 
 O payload enviado ao MegaZap é montado em `src/integration.py` e pode ser ajustado através de:
